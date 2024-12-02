@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ETEC Card Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #121212;
+            background-size: auto;
+            color: white;
+        }
+
+        .card{
+             margin: 0 auto;
+            padding: 2em;
+            width: 300px;
+            background: #1c1f2b;
+            text-align: center;
+            border-radius: 10px;
+            position: relative;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.5s ease;
+            overflow: hidden;
+            box-shadow: 0px 0px 10px 5px #080808;
+        }
+
+        @property --angle{
+            syntax: "<angle>";
+            initial-value: 0deg;
+            inherits: false;
+        }
+
+        .card::after, .card::before{
+    content: '';
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    background-image: conic-gradient(from var(--angle), #6918ff, #2584ff,#1ff0ff, #20ffcf, #1ff0ff,#2584ff, #6918ff);
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    z-index: -1;
+    padding: 3px;
+    border-radius: 10px;
+    animation: 3s spin linear infinite;
+}
+
+.card.inteligencia::after {
+    background-image: conic-gradient(from var(--angle), #ff007f, #ff66cc, #ff80ff, #ff66cc, #ff007f);
+}
+
+.card.criatividade::after {
+    background-image: conic-gradient(from var(--angle), #ffcc00, #ff9966, #ff6600,#ff9966,#ffcc00);
+}
+
+.card.popularidade::after {
+    background-image: conic-gradient(from var(--angle), #ffbf00, #ff6600, #ff0000,#ff6600,#ffbf00);
+}
+
+.card.potencial::after {
+    background-image: conic-gradient(from var(--angle), #33cc33, #66ff66, #99ff99,#66ff66,#33cc33);
+}
+
+.card.esportes::after {
+    background-image: conic-gradient(from var(--angle), #0066ff, #1fbfff, #33ccff,#1fbfff,#0066ff);
+}
+
+        
+        .card::before{
+            filter: blur(1.5rem);
+            opacity: 0.5;
+        }
+
+        @keyframes spin{
+            from{
+            --angle: 0deg;
+        }
+        to{
+        --angle: 360deg;
+        }
+        }
+        
+        .card.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            object-fit: contain;
+            object-position: center;
+        }
+        
+        .character-card {
+            width: 225px;
+            height: 300px;
+        }
+        .extra-card {
+            width: 150px;
+            height: 200px;
+        }
+        .boost-info {
+    font-size: 15px; /* Tamanho da fonte */
+    color: white; /* Cor do texto */
+    padding: 10px; /* Espaço ao redor do texto */
+    background-color: rgba(0, 0, 0, 0.6); /* Fundo semitransparente */
+    border-radius: 0 0 8px 8px;
+    position: absolute; /* Posiciona o boost-info de forma absoluta */
+    bottom: 0; /* Fixa o boost-info na parte inferior do card */
+    left: 0; /* Começa da borda esquerda */
+    right: 0; /* Vai até a borda direita */
+    z-index: 10; /* Garante que o texto fique acima de outros elementos */
+    text-align: center; /* Centraliza o texto dentro do boost-info */
+    box-sizing: border-box; /* Garante que o padding não ultrapasse o tamanho do container */
+}
+
+        #player-container {
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+        }
+        .player {
+            text-align: center;
+        }
+        .button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            border: none;
+            border-radius: 100px;
+            background-color: white;
+            color: black;
+            font-weight: bold;  
+        }
+        .button:hover {
+            transform: translateY(-5px);
+            font-size: 17;
+        }
+        .winner {
+            color: rgb(255, 255, 255);
+            font-weight: bold;
+        }
+        #results {
+            margin-top: 30px;
+        }
+        .attribute-animation {
+            font-size: 24px;
+            font-weight: bold;
+            animation: blink 0.3s step-end infinite alternate;
+        }
+        .attribute-animation.color-1 {
+            color: rgb(255, 37, 37);
+        }
+        .attribute-animation.color-2 {
+            color: rgb(0, 110, 255);
+        }
+        .attribute-animation.color-3 {
+            color: rgb(0, 255, 0);
+        }
+        .extra-spacing {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>ETEC Card Game</h1>
+    <div id="game-container">
+        <button class="button" id="start-button" onclick="startGame()">Iniciar Jogo</button>
+        <div id="player-container"></div>
+        <div id="results"></div>
+        <div id="action-buttons" style="display: none;">
+            <button class="button" id="attribute-button" onclick="startSuspense()">Sortear Atributo</button>
+            <button class="button" onclick="restartGame()">Recomeçar</button>
+        </div>
+    </div>
+
+    <script>
+        const characters = [
+{ name: "Pirangi", img: "cartas/Pirangi.png", atributos: { inteligencia: 83, criatividade: 77, popularidade: 75, potencial: 75, esportes: 72 } },
+//{ name: "Iago", img: "cartas/Iago.png", atributos: { inteligencia: 74, criatividade: 81, popularidade: 70, potencial: 73, esportes: 65 } },
+//{ name: "Kauan", img: "cartas/Kauan.png", atributos: { inteligencia: 80, criatividade: 80, popularidade: 71, potencial: 71, esportes: 69 } },
+//{ name: "João Pedro", img: "cartas/João_Pedro.png", atributos: { inteligencia: 84, criatividade: 81, popularidade: 72, potencial: 73, esportes: 69 } },
+//{ name: "Alysson", img: "cartas/Alysson.png", atributos: { inteligencia: 71, criatividade: 75, popularidade: 89, potencial: 69, esportes: 69 } },
+//{ name: "Nicoly", img: "cartas/Nicoly.png", atributos: { inteligencia: 78, criatividade: 81, popularidade: 73, potencial: 73, esportes: 70 } },
+//{ name: "Alana", img: "cartas/Alana.png", atributos: { inteligencia: 71, criatividade: 80, popularidade: 85, potencial: 74, esportes: 70 } },
+//{ name: "Lavínia", img: "cartas/Lavínia.png", atributos: { inteligencia: 79, criatividade: 82, popularidade: 73, potencial: 75, esportes: 70 } },
+//{ name: "João Victor", img: "cartas/João_Victor.png", atributos: { inteligencia: 79, criatividade: 82, popularidade: 74, potencial: 79, esportes: 65 } },
+//{ name: "Arthur", img: "cartas/Arthur.png", atributos: { inteligencia: 75, criatividade: 80, popularidade: 83, potencial: 75, esportes: 70 } },
+//{ name: "Alice", img: "cartas/Alice.png", atributos: { inteligencia: 78, criatividade: 81, popularidade: 76, potencial: 74, esportes: 75 } },
+{ name: "Marlon", img: "cartas/Marlon.png", atributos: { inteligencia: 75, criatividade: 79, popularidade: 78, potencial: 77, esportes: 75 } },
+{ name: "MARLON", img: "cartas/E_Marlon.png", atributos: { inteligencia: 79, criatividade: 88, popularidade: 73, potencial: 74, esportes: 75 } },
+{ name: "Maria", img: "cartas/Maria.png", atributos: { inteligencia: 79, criatividade: 82, popularidade: 73, potencial: 81, esportes: 72 } },
+{ name: "Oficina", img: "cartas/Oficina.png", atributos: { inteligencia: 82, criatividade: 82, popularidade: 80, potencial: 77, esportes: 76 } },
+//{ name: "Guilherme", img: "cartas/Guilherme.png", atributos: { inteligencia: 79, criatividade: 82, popularidade: 76, potencial: 77, esportes: 74 } },
+//{ name: "João Lucas", img: "cartas/João_Lucas.png", atributos: { inteligencia: 78, criatividade: 80, popularidade: 84, potencial: 76, esportes: 80 } },
+{ name: "Thales", img: "cartas/Thales.png", atributos: { inteligencia: 80, criatividade: 82, popularidade: 77, potencial: 80, esportes: 80 } },
+//{ name: "Careca", img: "cartas/Careca.png", atributos: { inteligencia: 80, criatividade: 83, popularidade: 82, potencial: 76, esportes: 75 } },
+//{ name: "Pedro Luis", img: "cartas/Pedro_Luis.png", atributos: { inteligencia: 77, criatividade: 83, popularidade: 82, potencial: 83, esportes: 72 } },
+{ name: "Lucas", img: "cartas/Lucas.png", atributos: { inteligencia: 80, criatividade: 82, popularidade: 75, potencial: 81, esportes: 81 } },
+//{ name: "Super-Heroi", img: "cartas/Super_Heroi.png", atributos: { inteligencia: 72, criatividade: 74, popularidade: 80, potencial: 78, esportes: 85 } },
+//{ name: "Beatriz", img: "cartas/Beatriz.png", atributos: { inteligencia: 82, criatividade: 82, popularidade: 80, potencial: 81, esportes: 74 } },
+//{ name: "Paulo", img: "cartas/Paulo.png", atributos: { inteligencia: 83, criatividade: 86, popularidade: 72, potencial: 83, esportes: 75 } },
+{ name: "Febem", img: "cartas/Febem.png", atributos: { inteligencia: 77, criatividade: 82, popularidade: 88, potencial: 85, esportes: 88 } },
+{ name: "Felipe", img: "cartas/Felipe.png", atributos: { inteligencia: 81, criatividade: 80, popularidade: 75, potencial: 85, esportes: 80 } },
+{ name: "Eduardo", img: "cartas/Eduardo.png", atributos: { inteligencia: 83, criatividade: 82, popularidade: 77, potencial: 81, esportes: 81 } },
+//{ name: "Calistenia", img: "cartas/Calistenia.png", atributos: { inteligencia: 78, criatividade: 82, popularidade: 78, potencial: 79, esportes: 90 } },
+{ name: "Kainã", img: "cartas/Kainã.png", atributos: { inteligencia: 83, criatividade: 87, popularidade: 79, potencial: 80, esportes: 77 } },
+{ name: "Heitor", img: "cartas/Heitor.png", atributos: { inteligencia: 82, criatividade: 90, popularidade: 91, potencial: 75, esportes: 70 } },
+{ name: "Hplay", img: "cartas/Hplay.png", atributos: { inteligencia: 84, criatividade: 90, popularidade: 91, potencial: 82, esportes: 80 } },
+{ name: "Juliana", img: "cartas/Juliana.png", atributos: { inteligencia: 78, criatividade: 84, popularidade: 87, potencial: 75, esportes: 91 } },
+{ name: "Loucura", img: "cartas/Loucura.png", atributos: { inteligencia: 75, criatividade: 86, popularidade: 86, potencial: 79, esportes: 83 } },
+//{ name: "Lais", img: "cartas/Lais.png", atributos: { inteligencia: 80, criatividade: 82, popularidade: 87, potencial: 88, esportes: 78 } },
+{ name: "Alfredo", img: "cartas/Alfredo.png", atributos: { inteligencia: 85, criatividade: 87, popularidade: 75, potencial: 88, esportes: 77 } },
+//{ name: "Perez", img: "cartas/Perez.png", atributos: { inteligencia: 79, criatividade: 85, popularidade: 90, potencial: 81, esportes: 87 } },
+{ name: "Pedro Enzo", img: "cartas/Pedro_Enzo.png", atributos: { inteligencia: 81, criatividade: 85, popularidade: 80, potencial: 85, esportes: 91 } },
+{ name: "Cipolara", img: "cartas/Cipolara.png", atributos: { inteligencia: 81, criatividade: 87, popularidade: 85, potencial: 86, esportes: 82 } },
+{ name: "Duda", img: "cartas/Duda.png", atributos: { inteligencia: 86, criatividade: 83, popularidade: 90, potencial: 91, esportes: 73 } },
+//{ name: "Nicolas", img: "cartas/Nicolas.png", atributos: { inteligencia: 87, criatividade: 83, popularidade: 84, potencial: 91, esportes: 85 } },
+//{ name: "Emanuel", img: "cartas/Emanuel.png", atributos: { inteligencia: 90, criatividade: 89, popularidade: 86, potencial: 91, esportes: 83 } }
+        ];
+
+        const extras = [
+            { name: "Ulisses", img: "extras/Ulisses.png", boosts: { popularidade: 10, inteligencia: 15 } },
+            { name: "Professor Therese", img: "https://via.placeholder.com/150x200/555", boosts: { criatividade: 20, potencial: 10 } },
+            { name: "Garrafinha", img: "https://via.placeholder.com/150x200/666", boosts: { esportes: 15, popularidade: 5 } },
+            { name: "Carta Surpresa", img: "https://via.placeholder.com/150x200/777", boosts: { inteligencia: 10 } }
+        ];
+
+        const playerNames = ["Insulina", "Kuduro", "LORD", "JACK", "Diabetman", "Fã do Hplay"];
+
+        let player1, player2;
+
+        function sortear(array) {
+            const index = Math.floor(Math.random() * array.length);
+            return array[index];
+        }
+
+        function getRandomName() {
+            return playerNames[Math.floor(Math.random() * playerNames.length)];
+        }
+
+        function revealCard(container, card, type, delay) {
+            const div = document.createElement("div");
+            div.className = `card ${type === 'character' ? 'character-card' : 'extra-card'} extra-spacing`;
+            div.innerHTML = `<img src="${card.img}" alt="${card.name}">`;
+
+            if (type === 'extra') {
+            const boostsText = Object.entries(card.boosts)
+            .map(([key, value]) => `+${value} ${key}`)
+            .join(", ");
+            div.innerHTML += `<div class="boost-info">${boostsText}</div>`;
+}
+
+            setTimeout(() => {
+                div.classList.add("revealed");
+            }, delay);
+
+            container.appendChild(div);
+        }
+
+        function startGame() {
+            const startButton = document.getElementById("start-button");
+            startButton.style.display = "none";
+
+            const playerContainer = document.getElementById("player-container");
+            playerContainer.innerHTML = "";
+
+            player1 = {
+                name: getRandomName(),
+                character: sortear(characters),
+                extra: sortear(extras)
+            };
+
+            player2 = {
+                name: getRandomName(),
+                character: sortear(characters),
+                extra: sortear(extras)
+            };
+
+            const player1Div = document.createElement("div");
+            player1Div.className = "player";
+            player1Div.innerHTML = `<h2>${player1.name}</h2>`;
+            playerContainer.appendChild(player1Div);
+
+            revealCard(player1Div, player1.character, "character", 500);
+            setTimeout(() => {
+                revealCard(player1Div, player1.extra, "extra", 1500);
+
+                const player2Div = document.createElement("div");
+                player2Div.className = "player";
+                player2Div.innerHTML = `<h2>${player2.name}</h2>`;
+                playerContainer.appendChild(player2Div);
+
+                revealCard(player2Div, player2.character, "character", 500);
+                setTimeout(() => {
+                    revealCard(player2Div, player2.extra, "extra", 1500);
+
+                    setTimeout(() => {
+                        document.getElementById("action-buttons").style.display = "block";
+                    }, 500);
+                }, 2000);
+            }, 2000);
+        }
+
+        function startSuspense() {
+    const resultsContainer = document.getElementById("results");
+    resultsContainer.innerHTML = '<div class="attribute-animation">Atributo: ???</div>';
+
+    let count = 0;
+    const attributes = Object.keys(player1.character.atributos);
+    const suspenseInterval = setInterval(() => {
+        const randomAttribute = attributes[Math.floor(Math.random() * attributes.length)];
+        const attributeElement = resultsContainer.querySelector(".attribute-animation");
+        attributeElement.textContent = `Atributo: ${randomAttribute}`;
+        attributeElement.className = `attribute-animation color-${(count % 3) + 1}`;
+        count++;
+
+        // Aplica a classe que altera a cor do fundo com base no atributo sorteado
+        const attributeClass = randomAttribute.toLowerCase(); // Cria a classe baseada no atributo
+        document.querySelectorAll('.card').forEach(card => {
+            card.classList.remove('inteligencia', 'criatividade', 'popularidade', 'potencial', 'esportes'); // Limpa classes antigas
+            card.classList.add(attributeClass); // Adiciona a classe do atributo sorteado
+        });
+
+        if (count > 10) {
+            clearInterval(suspenseInterval);
+            determineWinner(randomAttribute);
+        }
+    }, 200);
+}
+
+        function determineWinner(atributoSorteado) {
+            const player1Value = player1.character.atributos[atributoSorteado] + (player1.extra.boosts[atributoSorteado] || 0);
+            const player2Value = player2.character.atributos[atributoSorteado] + (player2.extra.boosts[atributoSorteado] || 0);
+
+            let winnerText = "";
+            if (player1Value > player2Value) {
+                winnerText = `<p class="winner">${player1.character.name} vence no atributo ${atributoSorteado} (${player1Value} vs ${player2Value})!</p>`;
+            } else if (player2Value > player1Value) {
+                winnerText = `<p class="winner">${player2.character.name} vence no atributo ${atributoSorteado} (${player2Value} vs ${player1Value})!</p>`;
+            } else {
+                winnerText = `<p>Empate no atributo ${atributoSorteado} (${player1Value} vs ${player2Value})!</p>`;
+            }
+            document.getElementById("results").innerHTML = winnerText;
+    }
+
+    function restartGame() {
+        document.getElementById("results").innerHTML = "";
+        document.getElementById("action-buttons").style.display = "none";
+        startGame();
+    }
+</script>
+</body> 
+</html>
